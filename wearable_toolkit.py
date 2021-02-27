@@ -16,100 +16,20 @@ from scipy.signal import find_peaks, butter, filtfilt
 import matplotlib.pyplot as plt
 from scipy import linalg
 from sklearn.preprocessing import MinMaxScaler
-from scipy.interpolate import interp1d
 
-from const import SENSOR_LIST, IMU_FIELDS, FORCE_DATA_FIELDS, EXT_KNEE_MOMENT, TARGETS_LIST, SUBJECT_HEIGHT, \
-    EVENT_COLUMN
-from const import SUBJECT_WEIGHT, STANCE, STANCE_SWING, STEP_TYPE, VIDEO_ORIGINAL_SAMPLE_RATE
+from const import SENSOR_LIST, IMU_FIELDS, FORCE_DATA_FIELDS, EXT_KNEE_MOMENT, SUBJECT_HEIGHT, EVENT_COLUMN
+from const import SUBJECT_WEIGHT
 import wearable_math
-
-
-class VideoCsvReader:
-    """
-    read video exported csv file by openPose.
-    """
-
-    def __init__(self, file_path):
-        self.data_frame = pd.read_csv(file_path, index_col=0)
-
-    def get_column_position(self, marker_name):
-        return self.data_frame[marker_name]
-
-    def get_rshank_angle(self):
-        ankle = self.data_frame[['RAnkle_x', 'RAnkle_y']]
-        knee = self.data_frame[['RKnee_x', 'RKnee_y']]
-        vector = knee.values - ankle.values
-        return np.arctan2(-vector[:, 1], vector[:, 0])
-
-    def fill_low_probability_data(self):
-        columns_label = self.data_frame.columns.values.reshape([-1, 3]).tolist()
-        for x, y, probability in columns_label:
-            self.data_frame.loc[self.data_frame[probability] < 0.5, [x, y, probability]] = np.nan
-        self.data_frame = self.data_frame.interpolate(method='linear', axis=0)
-
-    def low_pass_filtering(self, cut_off_fre, sampling_fre, filter_order):
-
-        # plt.figure()
-        # plt.plot(self.data_frame['RKnee_x'])
-        # plt.plot(data_filter(self.data_frame['RKnee_x'], 15, 100, 2))
-        # plt.plot(data_filter(self.data_frame['RKnee_x'], 10, 100, 2))
-        # plt.show()
-
-        self.data_frame.loc[:, :] = data_filter(self.data_frame.values, cut_off_fre, sampling_fre, filter_order)
-
-    def resample_to_100hz(self):
-        target_sample_rate = 100.
-        x, step = np.linspace(0., 1., self.data_frame.shape[0], retstep=True)
-        # new_x = np.linspace(0., 1., int(self.data_frame.shape[0]*target_sample_rate/VIDEO_ORIGINAL_SAMPLE_RATE))
-        new_x = np.arange(0., 1., step*VIDEO_ORIGINAL_SAMPLE_RATE/target_sample_rate)
-        f = interp1d(x, self.data_frame, axis=0)
-        self.data_frame = pd.DataFrame(f(new_x), columns=self.data_frame.columns)
-
-    def crop(self, start_index):
-        # keep index after start_index
-        self.data_frame = self.data_frame.loc[start_index:]
-        self.data_frame.index = range(self.data_frame.shape[0])
-
-
-class Visual3dCsvReader:
-    """
-    read v3d export data. It should contain LEFT_KNEE_MOMENT,LEFT_KNEE_ANGLE etc.
-    """
-    TRUE_EVENT_INDEX = 0
-
-    def __init__(self, file_path):
-        self.data = pd.read_csv(file_path, delimiter='\t', header=1, skiprows=[2, 3, 4])
-        self.data.fillna(0)
-        self.data_frame = self.data[[
-            'RIGHT_KNEE_MOMENT', 'RIGHT_KNEE_MOMENT.1', 'RIGHT_KNEE_ANGLE', 'RIGHT_KNEE_VELOCITY']].fillna(0)
-        self.data_frame.columns = TARGETS_LIST
-
-    def create_step_id(self, step_type):
-        [LOFF, LON, ROFF, RON] = [self.data[event].dropna().values.tolist() for event in ['LOFF', 'LON', 'ROFF', 'RON']]
-
-        events_dict = {'ROFF': ROFF, 'RON': RON, 'LOFF': LOFF, 'LON': LON}
-        # Filter events_dict
-        for _, frames in events_dict.items():
-            for i in range(len(frames) - 1, -1, -1):
-                if abs(frames[i] - frames[i - 1]) < 10:
-                    frames.pop(i)
-
-    def crop(self, start_index):
-        # keep index after start_index
-        self.data = self.data.loc[start_index:]
-        self.data.index = range(self.data.shape[0])
-        self.data_frame = self.data_frame.loc[start_index:]
-        self.data_frame.index = range(self.data_frame.shape[0])
 
 
 [PARENT_TITLE, SAMPLE_RATE, TITLE, DIRECTION, UNITS, DATA] = range(6)
 
 
 class ViconCsvReader:
-    '''
+    """
     Read the csv files exported from vicon.
     The csv file should only contain Trajectories information
-    '''
+    """
 
     # if static_trial is not none, it's used for filling missing data.
     def __init__(self, file_path, segment_definitions=None, static_trial=None, sub_info=None):
@@ -628,8 +548,8 @@ def translate_step_event_to_step_id(events_dict, max_step_length):
     r_steps = map(transform_to_step_events, r_steps)
     r_steps = pd.DataFrame(r_steps)
     r_steps.columns = ['off_3', 'on_2', 'off_1', 'on_0']
-    step_type_to_event_columns = {STANCE_SWING: ['on_2', 'on_0'], STANCE: ['on_2', 'off_1']}
-    return r_steps[step_type_to_event_columns[STEP_TYPE]]
+    stance_columns = ['on_2', 'off_1']
+    return r_steps[stance_columns]
 
 
 def calibrate_force_plate_center(file_path, plate_num):

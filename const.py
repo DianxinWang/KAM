@@ -1,8 +1,5 @@
 import os
 
-VIDEO_PATH = os.environ.get('VIDEO_DATA_PATH')
-OPENPOSE_MODEL_PATH = os.environ.get('OPENPOSE_MODEL_PATH')
-VIDEO_ORIGINAL_SAMPLE_RATE = 119.99014859206962
 DATA_PATH = os.environ.get('KAM_DATA_PATH')
 TRIALS = ['baseline', 'fpa', 'step_width', 'trunk_sway']
 TRIALS_PRINT = ['Baseline', 'FPA', 'Step Width', 'Trunk Sway']
@@ -12,8 +9,6 @@ SUBJECTS = ['s002_wangdianxin', 's004_ouyangjue', 's005_tangansheng', 's006_xuse
             's015_weihuan', 's017_tantian', 's018_wangmian', 's019_chenhongyuan', 's020_houjikang'
             # , 's003_linyuan', 's001_tantian', 's016_houjikang'
             ]
-STEP_TYPES = STANCE, STANCE_SWING = range(2)
-STEP_TYPE = STANCE
 SEGMENT_DEFINITIONS = {
     'L_FOOT': ['LFCC', 'LFM5', 'LFM2'],
     'R_FOOT': ['RFCC', 'RFM5', 'RFM2'],
@@ -32,17 +27,12 @@ IMU_FIELDS = ['AccelX', 'AccelY', 'AccelZ', 'GyroX', 'GyroY', 'GyroZ', 'MagX', '
               'Quat3', 'Quat4']
 
 extract_imu_fields = lambda imus, fields: [field + "_" + imu for imu in imus for field in fields]
-extract_video_fields = lambda videos, angles: [video + "_" + position + "_" + angle for video in videos
-                                               for position in ["x", "y"] for angle in angles]
-VIDEO_LIST = ["LShoulder", "RShoulder", "MidHip", "RHip", "LHip", "RKnee", "LKnee", "RAnkle", "LAnkle", "RHeel",
-              "LHeel"]
-VIDEO_ANGLES = ["90", "180"]
 
-VIDEO_DATA_FIELDS = extract_video_fields(VIDEO_LIST, VIDEO_ANGLES)
 IMU_DATA_FIELDS = extract_imu_fields(SENSOR_LIST, IMU_FIELDS)
 
 SAMPLES_BEFORE_STEP = 20
 SAMPLES_AFTER_STEP = 20
+FORCE_PHASE_THRESHOLD = 20
 
 L_PLATE_FORCE_Z, R_PLATE_FORCE_Z = ['plate_1_force_z', 'plate_2_force_z']
 
@@ -61,7 +51,7 @@ STATIC_DATA = SUBJECT_WEIGHT, SUBJECT_HEIGHT = ['body weight', 'body height']
 
 PHASE_LIST = [EVENT_COLUMN, KAM_PHASE, FORCE_PHASE, STEP_PHASE, SUBJECT_ID, TRIAL_ID] = ['Event', 'kam_phase', 'force_phase', 'step_phase', 'subject_id', 'trial_id']
 # all the fields of combined data
-CONTINUOUS_FIELDS = TARGETS_LIST + EXT_KNEE_MOMENT + IMU_DATA_FIELDS + VIDEO_DATA_FIELDS + FORCE_DATA_FIELDS +\
+CONTINUOUS_FIELDS = TARGETS_LIST + EXT_KNEE_MOMENT + IMU_DATA_FIELDS  + FORCE_DATA_FIELDS +\
                     JOINT_LIST + SEGMENT_DATA_FIELDS
 DISCRETE_FIELDS = STATIC_DATA + PHASE_LIST
 ALL_FIELDS = DISCRETE_FIELDS + CONTINUOUS_FIELDS
